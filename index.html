@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Sorter</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0C0C0E;
+  --surface: #161619;
+  --surface-2: #1E1E22;
+  --surface-3: #26262B;
+  --border: #2A2A30;
+  --border-hover: #3A3A42;
+  --text: #E8E6E3;
+  --text-dim: #8A8A95;
+  --text-muted: #5A5A65;
+  --accent: #4ADE80;
+  --accent-dim: #22C55E;
+  --accent-glow: rgba(74, 222, 128, 0.12);
+  --warning: #FB923C;
+  --danger: #F87171;
+  --blue: #60A5FA;
+  --purple: #A78BFA;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+html { font-size: 14px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(12, 12, 14, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-left { display: flex; align-items: center; gap: 1rem; }
+.logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.logo span { color: var(--text-dim); }
+.header-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.stat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.stat strong { color: var(--text); font-weight: 500; }
+
+.header-actions { display: flex; gap: 0.5rem; }
+
+button {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  transition: all 0.15s ease;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #0C0C0E;
+}
+.btn-primary:hover { background: var(--accent-dim); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--border-hover); background: var(--surface-3); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  padding: 0.4rem 0.6rem;
+}
+.btn-ghost:hover { color: var(--text); background: var(--surface-2); }
+.btn-danger { background: rgba(248, 113, 113, 0.1); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.2); }
+.btn-danger:hover { background: rgba(248, 113, 113, 0.2); }
+
+/* Main Layout */
+.app { display: flex; height: calc(100vh - 56px); }
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-header h3 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+.add-property-row {
+  display: flex;
+  gap: 0.4rem;
+}
+.add-property-row input {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.6rem;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.add-property-row input:focus { border-color: var(--accent); }
+.add-property-row input::placeholder { color: var(--text-muted); }
+.add-property-row button {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.property-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+.property-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.12s;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+}
+.property-item:hover { background: var(--surface-2); }
+.property-item.active {
+  background: var(--accent-glow);
+  border-color: rgba(74, 222, 128, 0.2);
+}
+.property-item .name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.property-item .count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+.property-item .active .name { color: var(--accent); }
+.property-item .remove-btn {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 0.3rem;
+  transition: opacity 0.12s;
+}
+.property-item:hover .remove-btn { opacity: 0.6; }
+.property-item .remove-btn:hover { opacity: 1; }
+
+.unassigned-section {
+  border-top: 1px solid var(--border);
+  padding: 0.5rem;
+}
+.unassigned-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.12s;
+  border: 1px solid transparent;
+}
+.unassigned-item:hover { background: var(--surface-2); }
+.unassigned-item.active {
+  background: rgba(251, 146, 60, 0.08);
+  border-color: rgba(251, 146, 60, 0.2);
+}
+.unassigned-item .name { color: var(--warning); font-size: 0.82rem; font-weight: 500; }
+.unassigned-item .count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Main Content */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Drop Zone */
+.dropzone-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+.dropzone {
+  width: 100%;
+  max-width: 600px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 4rem 2rem;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+.dropzone.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+.dropzone-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.4;
+}
+.dropzone h2 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+.dropzone p {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.dropzone .formats {
+  margin-top: 1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Processing overlay */
+.processing-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 12, 14, 0.92);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.processing-overlay.active { display: flex; }
+.processing-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1.5rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.processing-text {
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+.processing-sub {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.processing-bar-outer {
+  width: 300px;
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  margin-top: 1.5rem;
+  overflow: hidden;
+}
+.processing-bar-inner {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* Content Grid View */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: none;
+}
+.content-area.active { display: block; }
+
+.category-section {
+  margin-bottom: 1.75rem;
+}
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.category-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.badge-exterior { background: rgba(96, 165, 250, 0.12); color: var(--blue); }
+.badge-interior { background: rgba(167, 139, 250, 0.12); color: var(--purple); }
+.badge-drone { background: rgba(74, 222, 128, 0.12); color: var(--accent); }
+.badge-video { background: rgba(251, 146, 60, 0.12); color: var(--warning); }
+.badge-twilight { background: rgba(244, 114, 182, 0.12); color: #F472B6; }
+.badge-other { background: rgba(138, 138, 149, 0.12); color: var(--text-dim); }
+
+.category-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.category-name-input {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  color: var(--text);
+  outline: none;
+}
+.category-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.category-actions { margin-left: auto; display: flex; gap: 0.25rem; }
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+.media-card {
+  position: relative;
+  aspect-ratio: 4/3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+  background: var(--surface-2);
+}
+.media-card:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+.media-card.selected { border-color: var(--accent); }
+.media-card img, .media-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.media-card .overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 50%, rgba(0,0,0,0.7));
+  opacity: 0;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: flex-end;
+  padding: 0.5rem;
+}
+.media-card:hover .overlay { opacity: 1; }
+.media-card .filename {
+  font-size: 0.65rem;
+  color: white;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.media-card .type-icon {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  font-family: 'JetBrains Mono', monospace;
+}
+.media-card .select-check {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s;
+  font-size: 0.65rem;
+  color: white;
+}
+.media-card:hover .select-check { opacity: 1; }
+.media-card.selected .select-check {
+  opacity: 1;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+/* Move dropdown */
+.move-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 50;
+}
+.move-bar.active { display: flex; }
+.move-bar-left { display: flex; align-items: center; gap: 1rem; }
+.move-bar-left span {
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.move-bar-left strong { color: var(--accent); }
+.move-select {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem;
+  color: var(--text);
+  outline: none;
+}
+
+/* Rename modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 12, 14, 0.85);
+  backdrop-filter: blur(6px);
+  z-index: 250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  width: 480px;
+  max-width: 90vw;
+}
+.modal h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.modal label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+  margin-top: 0.75rem;
+}
+.modal input, .modal select {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.modal input:focus, .modal select:focus { border-color: var(--accent); }
+.modal-preview {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+  word-break: break-all;
+}
+.modal-preview span { color: var(--text-muted); }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+.modal-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+.modal-token {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  background: var(--surface-3);
+  border-radius: 3px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.modal-token:hover { color: var(--accent); background: var(--accent-glow); }
+
+/* Star/hero badge */
+.media-card .star-btn {
+  position: absolute;
+  top: 0.4rem;
+  right: 2.2rem;
+  font-size: 0.85rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 5;
+  padding: 0;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+.media-card:hover .star-btn { opacity: 0.6; }
+.media-card .star-btn:hover { opacity: 1; }
+.media-card .star-btn.starred { opacity: 1; color: #FBBF24; }
+.media-card.is-starred { border-color: rgba(251, 191, 36, 0.4); }
+.media-card.is-starred .star-btn { opacity: 1; }
+
+/* Note icon on card */
+.media-card .note-btn {
+  position: absolute;
+  bottom: 0.4rem;
+  left: 0.4rem;
+  font-size: 0.6rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+  font-family: 'JetBrains Mono', monospace;
+  z-index: 5;
+}
+.media-card:hover .note-btn { opacity: 0.7; }
+.media-card .note-btn:hover { opacity: 1; color: var(--blue); }
+.media-card .note-btn.has-note { opacity: 1; color: var(--blue); background: rgba(96, 165, 250, 0.25); }
+.media-card .note-indicator {
+  position: absolute;
+  bottom: 0.4rem;
+  left: 2.5rem;
+  font-size: 0.6rem;
+  color: var(--blue);
+  font-family: 'JetBrains Mono', monospace;
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.12s;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.media-card:hover .note-indicator { opacity: 1; }
+
+/* Drag reorder */
+.media-card[draggable="true"] { cursor: grab; }
+.media-card.dragging { opacity: 0.3; }
+.media-card.drag-over { border-color: var(--accent); border-style: dashed; }
+
+/* Rename icon on card */
+.media-card .rename-btn {
+  position: absolute;
+  bottom: 0.4rem;
+  right: 0.4rem;
+  font-size: 0.6rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+  font-family: 'JetBrains Mono', monospace;
+  z-index: 5;
+}
+.media-card:hover .rename-btn { opacity: 0.7; }
+.media-card .rename-btn:hover { opacity: 1; color: var(--accent); }
+
+/* Property detail bar */
+.property-detail-bar {
+  display: none;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.property-detail-bar.active { display: flex; }
+.property-detail-bar .detail-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.property-detail-bar .detail-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.property-detail-bar input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  outline: none;
+  width: 140px;
+  transition: border-color 0.15s;
+}
+.property-detail-bar input:focus { border-color: var(--accent); }
+.property-detail-bar input::placeholder { color: var(--text-muted); }
+
+/* Orientation toolbar */
+.orientation-toolbar {
+  padding: 0.5rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.orient-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-right: 0.25rem;
+}
+.orient-btn {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 4px;
+}
+.orient-btn:hover { color: var(--text); border-color: var(--border-hover); }
+.orient-btn.active {
+  background: var(--accent-glow);
+  border-color: rgba(74, 222, 128, 0.3);
+  color: var(--accent);
+}
+.orient-count {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* Empty states */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+.empty-state .icon { font-size: 2.5rem; opacity: 0.3; margin-bottom: 1rem; }
+.empty-state p { color: var(--text-dim); font-size: 0.85rem; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: var(--text);
+  z-index: 300;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s ease;
+  max-width: 350px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: rgba(74, 222, 128, 0.3); }
+.toast.error { border-color: rgba(248, 113, 113, 0.3); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .media-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">Photo Sorter <span>/ media organizer</span></div>
+  </div>
+  <div class="header-stats" id="headerStats" style="display:none;">
+    <div class="stat"><strong id="statTotal">0</strong> files</div>
+    <div class="stat"><strong id="statClassified">0</strong> classified</div>
+    <div class="stat"><strong id="statProperties">0</strong> properties</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-secondary" id="addFilesBtn" style="display:none;">+ Add Files</button>
+    <button class="btn-secondary" id="batchRenameBtn" style="display:none;" onclick="openBatchRename()">Batch Rename</button>
+    <button class="btn-primary" id="exportBtn" style="display:none;" disabled>Export ZIP</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h3>Properties</h3>
+      <div class="add-property-row">
+        <input type="text" id="propertyInput" placeholder="123 Main St..." />
+        <button onclick="addProperty()">+</button>
+      </div>
+    </div>
+    <div class="property-list" id="propertyList"></div>
+    <div class="unassigned-section">
+      <div class="unassigned-item" id="unassignedBtn" onclick="showUnassigned()">
+        <span class="name">Unsorted</span>
+        <span class="count" id="unassignedCount">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="dropzone-wrapper" id="dropzoneWrapper">
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">📁</div>
+        <h2>Drop your media files here</h2>
+        <p>Add property addresses in the sidebar first, then drop photos & videos.<br>The app will auto-sort by GPS location, timestamps, and content type.</p>
+        <div class="formats">JPG · PNG · HEIC · WEBP · MP4 · MOV · WEBM</div>
+        <input type="file" id="fileInput" multiple accept="image/*,video/*" />
+      </div>
+    </div>
+
+    <div class="property-detail-bar" id="propertyDetailBar"></div>
+    <div class="orientation-toolbar" id="orientationToolbar" style="display:none;">
+      <span class="orient-label">Show:</span>
+      <button class="orient-btn active" id="orientAll" onclick="setOrientationFilter('all')">All</button>
+      <button class="orient-btn" id="orientLandscape" onclick="setOrientationFilter('landscape')">⬛ Horizontal</button>
+      <button class="orient-btn" id="orientPortrait" onclick="setOrientationFilter('portrait')">▮ Vertical</button>
+      <span class="orient-count" id="orientCount"></span>
+    </div>
+    <div class="content-area" id="contentArea">
+      <div id="categoryContainer"></div>
+    </div>
+
+    <div class="move-bar" id="moveBar">
+      <div class="move-bar-left">
+        <span><strong id="selectedCount">0</strong> selected</span>
+        <span style="color:var(--text-muted)">→</span>
+        <select class="move-select" id="moveTarget"></select>
+        <button class="btn-primary" onclick="moveSelected()" style="padding:0.4rem 0.8rem;">Move</button>
+      </div>
+      <div>
+        <button class="btn-ghost" onclick="changeCategorySelected()">Change Type</button>
+        <button class="btn-danger" onclick="removeSelected()" style="padding:0.4rem 0.8rem;">Remove</button>
+        <button class="btn-ghost" onclick="clearSelection()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="processing-overlay" id="processingOverlay">
+  <div class="processing-spinner"></div>
+  <div class="processing-text" id="processingText">Loading AI model...</div>
+  <div class="processing-sub" id="processingSub">This may take a moment on first load</div>
+  <div class="processing-bar-outer">
+    <div class="processing-bar-inner" id="processingBar"></div>
+  </div>
+</div>
+
+<input type="file" id="addFileInput" multiple accept="image/*,video/*" style="display:none;" />
+
+<div id="modalContainer"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+let model = null;
+let properties = [];
+let mediaFiles = [];
+let selectedIds = new Set();
+let activeView = null;
+let nextId = 1;
+
+// ── Real Estate Category Mapping ──
+const RE_CATEGORIES = {
+  exterior: {
+    label: 'Exterior', badge: 'badge-exterior',
+    keywords: ['house', 'home', 'building', 'mansion', 'palace', 'church', 'castle',
+      'cottage', 'barn', 'greenhouse', 'patio', 'doorway', 'window', 'fence', 'mailbox',
+      'lawn', 'garden', 'yard', 'landscap', 'sidewalk', 'driveway', 'garage', 'car',
+      'street', 'neighborhood', 'suburban', 'brick', 'stucco', 'siding', 'roof',
+      'porch', 'deck', 'balcony', 'facade', 'entrance', 'front door', 'gate']
+  },
+  interior: {
+    label: 'Interior', badge: 'badge-interior',
+    keywords: ['room', 'living', 'bedroom', 'bed', 'couch', 'sofa', 'chair', 'table',
+      'desk', 'bookcase', 'shelf', 'cabinet', 'closet', 'wardrobe', 'lamp', 'chandelier',
+      'curtain', 'pillow', 'rug', 'carpet', 'floor', 'ceiling', 'wall', 'fireplace',
+      'mirror', 'television', 'tv', 'entertainment', 'dining', 'furniture', 'interior',
+      'hallway', 'corridor', 'stair', 'railing', 'banister']
+  },
+  kitchen: {
+    label: 'Kitchen', badge: 'badge-interior',
+    keywords: ['kitchen', 'oven', 'stove', 'refrigerator', 'fridge', 'microwave',
+      'dishwasher', 'sink', 'counter', 'countertop', 'cabinet', 'pantry', 'cooking',
+      'toaster', 'mixer', 'blender', 'espresso', 'coffee']
+  },
+  bathroom: {
+    label: 'Bathroom', badge: 'badge-interior',
+    keywords: ['bathroom', 'bath', 'shower', 'toilet', 'sink', 'vanity', 'tub',
+      'bathtub', 'tile', 'towel', 'washroom', 'lavatory']
+  },
+  drone: {
+    label: 'Drone / Aerial', badge: 'badge-drone',
+    keywords: ['aerial', 'bird', 'sky', 'cloud', 'airplane', 'runway', 'airfield',
+      'satellite', 'map', 'terrain', 'valley', 'mountain', 'hill', 'field',
+      'parking lot', 'rooftop', 'solar']
+  },
+  pool: {
+    label: 'Pool / Outdoor Living', badge: 'badge-exterior',
+    keywords: ['pool', 'swimming', 'hot tub', 'jacuzzi', 'spa', 'waterfall',
+      'fountain', 'pond', 'lake', 'outdoor', 'barbecue', 'grill', 'fire pit',
+      'pergola', 'gazebo', 'umbrella', 'lounge']
+  },
+  landscape: {
+    label: 'Landscape / Views', badge: 'badge-exterior',
+    keywords: ['landscape', 'tree', 'forest', 'park', 'beach', 'ocean', 'sea',
+      'sunset', 'sunrise', 'scenic', 'view', 'panorama', 'nature', 'creek',
+      'river', 'waterfront', 'lakefront']
+  },
+  twilight: {
+    label: 'Twilight', badge: 'badge-twilight',
+    keywords: ['night', 'dusk', 'twilight', 'evening', 'dark', 'lit', 'glow',
+      'lantern', 'streetlight']
+  },
+  video: {
+    label: 'Video', badge: 'badge-video',
+    keywords: []
+  },
+  other: {
+    label: 'Other', badge: 'badge-other',
+    keywords: []
+  }
+};
+
+// ── Initialize ──
+const propertyInput = document.getElementById('propertyInput');
+propertyInput.addEventListener('keydown', e => { if (e.key === 'Enter') addProperty(); });
+
+document.getElementById('fileInput').addEventListener('change', handleFiles);
+document.getElementById('addFileInput').addEventListener('change', handleFiles);
+document.getElementById('addFilesBtn').addEventListener('click', () => {
+  document.getElementById('addFileInput').click();
+});
+document.getElementById('exportBtn').addEventListener('click', exportZip);
+
+// Drag and drop
+const dropzone = document.getElementById('dropzone');
+['dragenter', 'dragover'].forEach(evt => {
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('active'); });
+});
+['dragleave', 'drop'].forEach(evt => {
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('active'); });
+});
+dropzone.addEventListener('drop', e => {
+  const files = e.dataTransfer.files;
+  if (files.length) processFiles(files);
+});
+
+// ── Property Management ──
+function addProperty(name) {
+  const val = name || propertyInput.value.trim();
+  if (!val) return;
+  const id = 'prop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+  properties.push({ id, name: val, gps: null, mls: '', agent: '', shootDate: '' });
+  propertyInput.value = '';
+  renderSidebar();
+  updateStats();
+  showView(id);
+}
+
+function removeProperty(id) {
+  mediaFiles.forEach(m => { if (m.property === id) m.property = null; });
+  properties = properties.filter(p => p.id !== id);
+  renderSidebar();
+  updateStats();
+  if (activeView === id) showUnassigned();
+  else renderContent();
+}
+
+function showView(propId) {
+  activeView = propId;
+  renderSidebar();
+  renderContent();
+}
+
+function showUnassigned() {
+  activeView = 'unassigned';
+  renderSidebar();
+  renderContent();
+}
+
+function renderSidebar() {
+  const list = document.getElementById('propertyList');
+  list.innerHTML = properties.map(p => {
+    const count = mediaFiles.filter(m => m.property === p.id).length;
+    const active = activeView === p.id ? 'active' : '';
+    return `<div class="property-item ${active}" onclick="showView('${p.id}')">
+      <span class="name">${esc(p.name)}</span>
+      <span class="count">${count}</span>
+      <button class="remove-btn" onclick="event.stopPropagation();removeProperty('${p.id}')">×</button>
+    </div>`;
+  }).join('');
+
+  const unCount = mediaFiles.filter(m => !m.property).length;
+  document.getElementById('unassignedCount').textContent = unCount;
+  document.getElementById('unassignedBtn').className =
+    'unassigned-item' + (activeView === 'unassigned' ? ' active' : '');
+}
+
+// ── File Handling ──
+function handleFiles(e) {
+  processFiles(e.target.files);
+  e.target.value = '';
+}
+
+async function processFiles(fileList) {
+  const files = Array.from(fileList).filter(f =>
+    f.type.startsWith('image/') || f.type.startsWith('video/')
+  );
+  if (!files.length) { showToast('No supported media files found', 'error'); return; }
+
+  showProcessing('Loading AI model...', 'This may take a moment on first load');
+  if (!model) {
+    try {
+      model = await mobilenet.load({ version: 2, alpha: 1.0 });
+    } catch (err) {
+      hideProcessing();
+      showToast('Failed to load AI model. Check your internet connection.', 'error');
+      return;
+    }
+  }
+
+  let processed = 0;
+  const total = files.length;
+
+  for (const file of files) {
+    processed++;
+    updateProcessing(
+      `Classifying ${processed} of ${total}...`,
+      file.name,
+      (processed / total) * 100
+    );
+
+    const media = {
+      id: nextId++,
+      file,
+      url: URL.createObjectURL(file),
+      name: file.name,
+      type: file.type.startsWith('video/') ? 'video' : 'image',
+      property: null,
+      category: null,
+      gps: null,
+      timestamp: null,
+      predictions: [],
+      starred: false,
+      note: '',
+      sortOrder: nextId,
+      orientation: null
+    };
+
+    media.timestamp = file.lastModified ? new Date(file.lastModified) : null;
+
+    try {
+      if (media.type === 'image') {
+        const img = await loadImage(media.url);
+        const preds = await model.classify(img);
+        media.predictions = preds;
+        media.category = classifyRealEstate(preds);
+        media.orientation = getOrientation(img.naturalWidth, img.naturalHeight);
+        img.remove();
+      } else {
+        const { frame, width, height } = await extractVideoFrame(media.url);
+        if (frame) {
+          const preds = await model.classify(frame);
+          media.predictions = preds;
+          media.category = 'video';
+          media.orientation = getOrientation(width, height);
+          frame.remove();
+        } else {
+          media.category = 'video';
+          media.orientation = null;
+        }
+      }
+    } catch (err) {
+      media.category = media.type === 'video' ? 'video' : 'other';
+    }
+
+    if (properties.length === 1) {
+      media.property = properties[0].id;
+    }
+
+    mediaFiles.push(media);
+  }
+
+  if (properties.length > 1) {
+    autoAssignByTimestamp();
+  }
+
+  hideProcessing();
+  document.getElementById('dropzoneWrapper').style.display = 'none';
+  document.getElementById('contentArea').classList.add('active');
+  document.getElementById('headerStats').style.display = 'flex';
+  document.getElementById('addFilesBtn').style.display = 'block';
+  document.getElementById('batchRenameBtn').style.display = 'block';
+  document.getElementById('exportBtn').style.display = 'block';
+  document.getElementById('exportBtn').disabled = false;
+
+  if (!activeView && properties.length) showView(properties[0].id);
+  else if (!activeView) showUnassigned();
+  else renderContent();
+
+  renderSidebar();
+  updateStats();
+  showToast(`${files.length} files classified`, 'success');
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = document.createElement('img');
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function extractVideoFrame(src) {
+  return new Promise(resolve => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.preload = 'auto';
+
+    video.onloadeddata = () => {
+      video.currentTime = Math.min(2, video.duration / 4);
+    };
+    video.onseeked = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 224;
+      canvas.height = video.videoHeight || 224;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const w = video.videoWidth || 224;
+      const h = video.videoHeight || 224;
+      const img = document.createElement('img');
+      img.onload = () => { video.remove(); resolve({ frame: img, width: w, height: h }); };
+      img.onerror = () => { video.remove(); resolve({ frame: null, width: w, height: h }); };
+      img.src = canvas.toDataURL();
+      canvas.remove();
+    };
+    video.onerror = () => resolve({ frame: null, width: 0, height: 0 });
+    setTimeout(() => resolve({ frame: null, width: 0, height: 0 }), 8000);
+    video.src = src;
+  });
+}
+
+function classifyRealEstate(predictions) {
+  const combined = predictions.map(p => p.className.toLowerCase()).join(' ');
+
+  const scores = {};
+  for (const [cat, def] of Object.entries(RE_CATEGORIES)) {
+    if (cat === 'video' || cat === 'other') continue;
+    let score = 0;
+    for (const kw of def.keywords) {
+      if (combined.includes(kw)) score++;
+    }
+    if (score > 0) scores[cat] = score;
+  }
+
+  if (Object.keys(scores).length === 0) return 'other';
+
+  return Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+function autoAssignByTimestamp() {
+  const unassigned = mediaFiles.filter(m => !m.property && m.timestamp);
+  if (!unassigned.length || properties.length < 2) return;
+
+  unassigned.sort((a, b) => a.timestamp - b.timestamp);
+
+  const chunkSize = Math.ceil(unassigned.length / properties.length);
+  properties.forEach((prop, i) => {
+    const chunk = unassigned.slice(i * chunkSize, (i + 1) * chunkSize);
+    chunk.forEach(m => m.property = prop.id);
+  });
+}
+
+// ── Rendering ──
+function renderContent() {
+  const container = document.getElementById('categoryContainer');
+  const detailBar = document.getElementById('propertyDetailBar');
+  let files;
+
+  if (activeView === 'unassigned') {
+    files = mediaFiles.filter(m => !m.property);
+    detailBar.classList.remove('active');
+    detailBar.innerHTML = '';
+  } else {
+    files = mediaFiles.filter(m => m.property === activeView);
+    const prop = properties.find(p => p.id === activeView);
+    if (prop) {
+      detailBar.classList.add('active');
+      detailBar.innerHTML = `
+        <div class="detail-field">
+          <span class="detail-label">MLS#</span>
+          <input type="text" placeholder="MLS number" value="${esc(prop.mls || '')}" onchange="updatePropMeta('${prop.id}','mls',this.value)" />
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">Agent</span>
+          <input type="text" placeholder="Agent name" value="${esc(prop.agent || '')}" onchange="updatePropMeta('${prop.id}','agent',this.value)" />
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">Shoot Date</span>
+          <input type="date" value="${prop.shootDate || ''}" onchange="updatePropMeta('${prop.id}','shootDate',this.value)" />
+        </div>`;
+    } else {
+      detailBar.classList.remove('active');
+    }
+  }
+
+  const toolbar = document.getElementById('orientationToolbar');
+  if (files.length > 0) {
+    toolbar.style.display = 'flex';
+    ['All','Landscape','Portrait'].forEach(o => {
+      const btn = document.getElementById('orient' + o);
+      if (btn) btn.classList.toggle('active', orientationFilter === o.toLowerCase() || (o === 'All' && orientationFilter === 'all'));
+    });
+    const filtered = orientationFilter === 'all'
+      ? files
+      : files.filter(m => m.orientation === orientationFilter);
+    const countEl = document.getElementById('orientCount');
+    if (countEl) countEl.textContent = orientationFilter === 'all'
+      ? `${files.length} files`
+      : `${filtered.length} of ${files.length} shown`;
+    files = filtered;
+  } else {
+    toolbar.style.display = 'none';
+  }
+
+  if (!files.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="icon">📂</div>
+      <p>${orientationFilter !== 'all' ? 'No ' + orientationFilter + ' files in this view.' : activeView === 'unassigned' ? 'No unsorted files' : 'No files in this property yet. Drop files to add them.'}</p>
+    </div>`;
+    updateMoveBar();
+    return;
+  }
+
+  const groups = {};
+  files.forEach(m => {
+    const cat = m.category || 'other';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(m);
+  });
+
+  const catOrder = ['exterior', 'drone', 'landscape', 'twilight', 'pool', 'interior', 'kitchen', 'bathroom', 'video', 'other'];
+  const sorted = catOrder.filter(c => groups[c]);
+
+  container.innerHTML = sorted.map(cat => {
+    const items = groups[cat].sort((a, b) => {
+      const starDiff = (b.starred ? 1 : 0) - (a.starred ? 1 : 0);
+      if (starDiff !== 0) return starDiff;
+      return (a.sortOrder || 0) - (b.sortOrder || 0);
+    });
+    const def = RE_CATEGORIES[cat] || { label: cat, badge: 'badge-other' };
+    return `<div class="category-section" data-category="${cat}">
+      <div class="category-header">
+        <span class="category-badge ${def.badge}">${def.label}</span>
+        <span class="category-count">${items.length} file${items.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="media-grid">
+        ${items.map(m => renderCard(m)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  updateMoveBar();
+}
+
+function renderCard(m) {
+  const sel = selectedIds.has(m.id) ? 'selected' : '';
+  const starred = m.starred ? 'is-starred' : '';
+  const isVideo = m.type === 'video';
+  const typeLabel = isVideo ? 'VID' : m.name.split('.').pop().toUpperCase();
+
+  return `<div class="media-card ${sel} ${starred}" data-id="${m.id}"
+    draggable="true"
+    ondragstart="onDragStart(event,${m.id})"
+    ondragover="onDragOver(event)"
+    ondragenter="onDragEnter(event)"
+    ondragleave="onDragLeave(event)"
+    ondrop="onDrop(event,${m.id})"
+    ondragend="onDragEnd(event)"
+    onclick="toggleSelect(${m.id}, event)"
+    ondblclick="previewMedia(${m.id})">
+    ${isVideo
+      ? `<video src="${m.url}" preload="metadata" muted></video>`
+      : `<img src="${m.url}" alt="${esc(m.name)}" loading="lazy" />`}
+    <span class="type-icon">${typeLabel}</span>
+    <button class="star-btn ${m.starred ? 'starred' : ''}" onclick="event.stopPropagation();toggleStar(${m.id})">${m.starred ? '★' : '☆'}</button>
+    <div class="select-check">${sel ? '✓' : ''}</div>
+    <button class="note-btn ${m.note ? 'has-note' : ''}" onclick="event.stopPropagation();openNoteEditor(${m.id})">NOTE</button>
+    ${m.note ? `<span class="note-indicator">${esc(m.note)}</span>` : ''}
+    <button class="rename-btn" onclick="event.stopPropagation();openRenameOne(${m.id})">REN</button>
+    <div class="overlay">
+      <span class="filename">${esc(m.name)}</span>
+    </div>
+  </div>`;
+}
+
+function toggleSelect(id, event) {
+  if (event && event.shiftKey && selectedIds.size > 0) {
+    const visibleIds = getVisibleIds();
+    const lastSelected = Array.from(selectedIds).pop();
+    const startIdx = visibleIds.indexOf(lastSelected);
+    const endIdx = visibleIds.indexOf(id);
+    if (startIdx !== -1 && endIdx !== -1) {
+      const [from, to] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
+      for (let i = from; i <= to; i++) selectedIds.add(visibleIds[i]);
+    }
+  } else {
+    if (selectedIds.has(id)) selectedIds.delete(id);
+    else selectedIds.add(id);
+  }
+  renderContent();
+}
+
+function getVisibleIds() {
+  let files;
+  if (activeView === 'unassigned') files = mediaFiles.filter(m => !m.property);
+  else files = mediaFiles.filter(m => m.property === activeView);
+  return files.map(m => m.id);
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  renderContent();
+}
+
+function updateMoveBar() {
+  const bar = document.getElementById('moveBar');
+  if (selectedIds.size === 0) {
+    bar.classList.remove('active');
+    return;
+  }
+  bar.classList.add('active');
+  document.getElementById('selectedCount').textContent = selectedIds.size;
+
+  const select = document.getElementById('moveTarget');
+  select.innerHTML = `<option value="">— Select destination —</option>` +
+    properties.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('') +
+    `<option value="__unassigned">Unsorted</option>`;
+}
+
+function moveSelected() {
+  const target = document.getElementById('moveTarget').value;
+  if (!target) return;
+  const propId = target === '__unassigned' ? null : target;
+
+  selectedIds.forEach(id => {
+    const m = mediaFiles.find(f => f.id === id);
+    if (m) m.property = propId;
+  });
+
+  selectedIds.clear();
+  renderSidebar();
+  renderContent();
+  updateStats();
+  showToast('Files moved', 'success');
+}
+
+function changeCategorySelected() {
+  const cats = Object.keys(RE_CATEGORIES);
+  const menu = prompt(
+    'Enter new category:\n' + cats.map(c => `  ${c} — ${RE_CATEGORIES[c].label}`).join('\n')
+  );
+  if (menu && RE_CATEGORIES[menu]) {
+    selectedIds.forEach(id => {
+      const m = mediaFiles.find(f => f.id === id);
+      if (m) m.category = menu;
+    });
+    selectedIds.clear();
+    renderContent();
+    showToast('Category updated', 'success');
+  }
+}
+
+function removeSelected() {
+  mediaFiles = mediaFiles.filter(m => !selectedIds.has(m.id));
+  selectedIds.clear();
+  renderSidebar();
+  renderContent();
+  updateStats();
+  showToast('Files removed', 'success');
+}
+
+function previewMedia(id) {
+  const m = mediaFiles.find(f => f.id === id);
+  if (!m) return;
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (m.type === 'video') {
+    w.document.write(`<video src="${m.url}" controls autoplay style="max-width:100%;max-height:100vh;"></video>`);
+  } else {
+    w.document.write(`<img src="${m.url}" style="max-width:100%;max-height:100vh;" />`);
+  }
+  w.document.title = m.name;
+}
+
+// ── Export ──
+async function exportZip() {
+  const zip = new JSZip();
+  let count = 0;
+
+  showProcessing('Building ZIP...', 'Packaging your organized files');
+
+  for (const prop of properties) {
+    const files = mediaFiles.filter(m => m.property === prop.id);
+    const folder = zip.folder(prop.name.replace(/[/\\:*?"<>|]/g, '_'));
+
+    const groups = {};
+    files.forEach(m => {
+      const cat = RE_CATEGORIES[m.category]?.label || 'Other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(m);
+    });
+
+    for (const [catName, items] of Object.entries(groups)) {
+      const subFolder = folder.folder(catName);
+      for (const m of items) {
+        const blob = m.file;
+        subFolder.file(m.name, blob);
+        count++;
+        updateProcessing('Building ZIP...', `${count} files added`, -1);
+      }
+    }
+  }
+
+  const unsorted = mediaFiles.filter(m => !m.property);
+  if (unsorted.length) {
+    const folder = zip.folder('_Unsorted');
+    for (const m of unsorted) {
+      folder.file(m.name, m.file);
+    }
+  }
+
+  updateProcessing('Compressing...', 'Almost done');
+  const blob = await zip.generateAsync({ type: 'blob' }, meta => {
+    updateProcessing('Compressing...', `${Math.round(meta.percent)}%`, meta.percent);
+  });
+
+  saveAs(blob, 'property-media-sorted.zip');
+  hideProcessing();
+  showToast(`Exported ${count} files`, 'success');
+}
+
+// ── Stats ──
+function updateStats() {
+  document.getElementById('statTotal').textContent = mediaFiles.length;
+  document.getElementById('statClassified').textContent =
+    mediaFiles.filter(m => m.category && m.category !== 'other').length;
+  document.getElementById('statProperties').textContent = properties.length;
+}
+
+// ── UI Helpers ──
+function showProcessing(text, sub) {
+  document.getElementById('processingText').textContent = text;
+  document.getElementById('processingSub').textContent = sub;
+  document.getElementById('processingBar').style.width = '0%';
+  document.getElementById('processingOverlay').classList.add('active');
+}
+function updateProcessing(text, sub, pct) {
+  document.getElementById('processingText').textContent = text;
+  document.getElementById('processingSub').textContent = sub;
+  if (pct >= 0) document.getElementById('processingBar').style.width = pct + '%';
+}
+function hideProcessing() {
+  document.getElementById('processingOverlay').classList.remove('active');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (type || '') + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Orientation ──
+let orientationFilter = 'all';
+
+function getOrientation(w, h) {
+  if (!w || !h) return null;
+  const ratio = w / h;
+  if (ratio > 1.05) return 'landscape';
+  if (ratio < 0.95) return 'portrait';
+  return 'square';
+}
+
+function setOrientationFilter(val) {
+  orientationFilter = val;
+  renderContent();
+}
+
+// ── Property Metadata ──
+function updatePropMeta(propId, field, value) {
+  const prop = properties.find(p => p.id === propId);
+  if (prop) prop[field] = value;
+}
+
+// ── Star / Hero ──
+function toggleStar(id) {
+  const m = mediaFiles.find(f => f.id === id);
+  if (m) {
+    m.starred = !m.starred;
+    renderContent();
+    showToast(m.starred ? 'Marked as hero shot' : 'Unmarked', 'success');
+  }
+}
+
+// ── Notes ──
+function openNoteEditor(id) {
+  const m = mediaFiles.find(f => f.id === id);
+  if (!m) return;
+
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h3>File Note</h3>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-dim);margin-bottom:0.75rem;">${esc(m.name)}</div>
+        <label>Note</label>
+        <input type="text" id="noteInput" value="${esc(m.note || '')}" placeholder="e.g. needs color correction, client favorite, reshoot..." />
+        <div class="modal-actions">
+          ${m.note ? '<button class="btn-danger" onclick="clearNote(' + id + ')" style="margin-right:auto;">Clear</button>' : ''}
+          <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn-primary" onclick="saveNote(${id})">Save</button>
+        </div>
+      </div>
+    </div>`;
+  setTimeout(() => {
+    const inp = document.getElementById('noteInput');
+    inp.focus();
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveNote(id); });
+  }, 50);
+}
+
+function saveNote(id) {
+  const m = mediaFiles.find(f => f.id === id);
+  if (m) {
+    m.note = document.getElementById('noteInput').value.trim();
+    closeModal();
+    renderContent();
+    showToast('Note saved', 'success');
+  }
+}
+
+function clearNote(id) {
+  const m = mediaFiles.find(f => f.id === id);
+  if (m) {
+    m.note = '';
+    closeModal();
+    renderContent();
+    showToast('Note cleared', 'success');
+  }
+}
+
+// ── Rename: Individual ──
+function openRenameOne(id) {
+  const m = mediaFiles.find(f => f.id === id);
+  if (!m) return;
+  const ext = m.name.includes('.') ? '.' + m.name.split('.').pop() : '';
+  const base = m.name.replace(ext, '');
+
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h3>Rename File</h3>
+        <label>Current name</label>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text-dim);padding:0.3rem 0;">${esc(m.name)}</div>
+        <label>New name</label>
+        <input type="text" id="renameInput" value="${esc(base)}" />
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Extension (${esc(ext)}) will be added automatically</div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn-primary" onclick="doRenameOne(${id}, '${esc(ext)}')">Rename</button>
+        </div>
+      </div>
+    </div>`;
+  setTimeout(() => {
+    const inp = document.getElementById('renameInput');
+    inp.focus();
+    inp.select();
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') doRenameOne(id, ext); });
+  }, 50);
+}
+
+function doRenameOne(id, ext) {
+  const inp = document.getElementById('renameInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  const m = mediaFiles.find(f => f.id === id);
+  if (m) {
+    m.name = val + ext;
+    closeModal();
+    renderContent();
+    showToast('File renamed', 'success');
+  }
+}
+
+// ── Batch Rename ──
+function openBatchRename() {
+  const propOptions = properties.map(p =>
+    `<option value="${p.id}">${esc(p.name)}</option>`
+  ).join('');
+
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h3>Batch Rename</h3>
+        <label>Scope</label>
+        <select id="batchScope">
+          <option value="__current">Current view</option>
+          <option value="__all">All files</option>
+          ${propOptions}
+        </select>
+        <label>Pattern</label>
+        <input type="text" id="batchPattern" value="{property}_{category}_{n}" placeholder="{property}_{category}_{n}" oninput="updateBatchPreview()" />
+        <div class="modal-tokens">
+          <span class="modal-token" onclick="insertToken('{property}')">{property}</span>
+          <span class="modal-token" onclick="insertToken('{category}')">{category}</span>
+          <span class="modal-token" onclick="insertToken('{n}')">{n}</span>
+          <span class="modal-token" onclick="insertToken('{nn}')">{nn}</span>
+          <span class="modal-token" onclick="insertToken('{nnn}')">{nnn}</span>
+          <span class="modal-token" onclick="insertToken('{date}')">{date}</span>
+          <span class="modal-token" onclick="insertToken('{mls}')">{mls}</span>
+          <span class="modal-token" onclick="insertToken('{agent}')">{agent}</span>
+          <span class="modal-token" onclick="insertToken('{original}')">{original}</span>
+        </div>
+        <label>Preview</label>
+        <div class="modal-preview" id="batchPreview"><span>Enter a pattern above</span></div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn-primary" onclick="doBatchRename()">Rename All</button>
+        </div>
+      </div>
+    </div>`;
+  setTimeout(() => updateBatchPreview(), 50);
+}
+
+function insertToken(token) {
+  const inp = document.getElementById('batchPattern');
+  const pos = inp.selectionStart;
+  inp.value = inp.value.slice(0, pos) + token + inp.value.slice(inp.selectionEnd);
+  inp.focus();
+  inp.setSelectionRange(pos + token.length, pos + token.length);
+  updateBatchPreview();
+}
+
+function updateBatchPreview() {
+  const pattern = document.getElementById('batchPattern').value;
+  const scope = document.getElementById('batchScope').value;
+  let files = getBatchFiles(scope);
+  if (!files.length) {
+    document.getElementById('batchPreview').innerHTML = '<span>No files in scope</span>';
+    return;
+  }
+
+  const previews = files.slice(0, 3).map((m, i) => {
+    const ext = m.name.includes('.') ? '.' + m.name.split('.').pop() : '';
+    return expandPattern(pattern, m, i + 1) + ext;
+  });
+  const more = files.length > 3 ? `<br/><span>...and ${files.length - 3} more</span>` : '';
+  document.getElementById('batchPreview').innerHTML = previews.join('<br/>') + more;
+}
+
+function getBatchFiles(scope) {
+  if (scope === '__current') {
+    if (activeView === 'unassigned') return mediaFiles.filter(m => !m.property);
+    return mediaFiles.filter(m => m.property === activeView);
+  }
+  if (scope === '__all') return [...mediaFiles];
+  return mediaFiles.filter(m => m.property === scope);
+}
+
+function expandPattern(pattern, media, index) {
+  const prop = properties.find(p => p.id === media.property);
+  const propName = prop ? prop.name.replace(/[/\\:*?"<>|]/g, '_').replace(/\s+/g, '-') : 'unsorted';
+  const catLabel = RE_CATEGORIES[media.category]?.label || 'Other';
+  const dateStr = media.timestamp ? media.timestamp.toISOString().slice(0, 10) : 'no-date';
+  const original = media.name.includes('.') ? media.name.slice(0, media.name.lastIndexOf('.')) : media.name;
+  const mls = prop?.mls || 'no-mls';
+  const agent = prop?.agent?.replace(/\s+/g, '-') || 'no-agent';
+
+  return pattern
+    .replace(/\{property\}/g, propName)
+    .replace(/\{category\}/g, catLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-'))
+    .replace(/\{n\}/g, String(index))
+    .replace(/\{nn\}/g, String(index).padStart(2, '0'))
+    .replace(/\{nnn\}/g, String(index).padStart(3, '0'))
+    .replace(/\{date\}/g, dateStr)
+    .replace(/\{mls\}/g, mls)
+    .replace(/\{agent\}/g, agent)
+    .replace(/\{original\}/g, original);
+}
+
+function doBatchRename() {
+  const pattern = document.getElementById('batchPattern').value;
+  const scope = document.getElementById('batchScope').value;
+  let files = getBatchFiles(scope);
+
+  files.forEach((m, i) => {
+    const ext = m.name.includes('.') ? '.' + m.name.split('.').pop() : '';
+    m.name = expandPattern(pattern, m, i + 1) + ext;
+  });
+
+  closeModal();
+  renderContent();
+  showToast(`${files.length} files renamed`, 'success');
+}
+
+// ── Modal ──
+function closeModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('modalContainer').innerHTML = '';
+}
+
+// ── Drag Reorder ──
+let dragId = null;
+
+function onDragStart(e, id) {
+  dragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.closest('.media-card').classList.add('dragging');
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function onDragEnter(e) {
+  e.preventDefault();
+  const card = e.target.closest('.media-card');
+  if (card) card.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  const card = e.target.closest('.media-card');
+  if (card) card.classList.remove('drag-over');
+}
+
+function onDrop(e, targetId) {
+  e.preventDefault();
+  const card = e.target.closest('.media-card');
+  if (card) card.classList.remove('drag-over');
+
+  if (dragId === null || dragId === targetId) return;
+
+  const dragMedia = mediaFiles.find(m => m.id === dragId);
+  const targetMedia = mediaFiles.find(m => m.id === targetId);
+
+  if (dragMedia && targetMedia && dragMedia.category === targetMedia.category) {
+    const tempOrder = dragMedia.sortOrder;
+    dragMedia.sortOrder = targetMedia.sortOrder;
+    targetMedia.sortOrder = tempOrder;
+    renderContent();
+  }
+}
+
+function onDragEnd(e) {
+  dragId = null;
+  document.querySelectorAll('.media-card').forEach(c => {
+    c.classList.remove('dragging', 'drag-over');
+  });
+}
+</script>
+</body>
+</html>
