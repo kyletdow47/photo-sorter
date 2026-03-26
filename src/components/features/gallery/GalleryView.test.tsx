@@ -119,9 +119,9 @@ describe('GalleryView', () => {
 
   it('shows photographer branding for pro tier', () => {
     const proProject = { ...mockProject, pricing_model: 'flat_fee' as const }
-    render(<GalleryView project={proProject} media={[]} theme="dark" />)
+    render(<GalleryView project={proProject} media={[]} theme="dark" hasPaid />)
     expect(screen.queryByText(/Powered by/i)).not.toBeInTheDocument()
-    expect(screen.getByText('Summer Wedding')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Summer Wedding' })).toBeInTheDocument()
   })
 
   it('opens lightbox when a photo is clicked', async () => {

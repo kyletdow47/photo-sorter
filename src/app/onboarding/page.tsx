@@ -1,11 +1,14 @@
-// TODO: eng-workspace will implement onboarding flow here
+import { OnboardingWizard } from '@/components/features/onboarding/OnboardingWizard'
+
+export const metadata = { title: 'Get started — View1 Studio' }
+
 export default function OnboardingPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="max-w-lg text-center space-y-4">
-        <h1 className="text-3xl font-bold">Welcome to View1 Studio</h1>
-        <p className="text-gray-500">Let&apos;s set up your photographer workspace</p>
+    <main className="min-h-screen bg-background flex flex-col items-center justify-center py-16 px-4">
+      <div className="mb-10 text-center">
+        <span className="text-2xl font-bold tracking-tight text-white">View1 Studio</span>
       </div>
+      <OnboardingWizard />
     </main>
   )
 }

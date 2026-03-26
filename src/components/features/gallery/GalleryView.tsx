@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Download } from 'lucide-react'
 import { GalleryLightbox } from './GalleryLightbox'
+import { GalleryPaywall } from './GalleryPaywall'
 import darkStyles from './themes/dark.module.css'
 import lightStyles from './themes/light.module.css'
 import minimalStyles from './themes/minimal.module.css'
@@ -21,9 +22,18 @@ interface GalleryViewProps {
   media: Media[]
   theme: GalleryTheme
   accessToken?: string
+  hasPaid?: boolean
+  photographerName?: string
 }
 
-export function GalleryView({ project, media, theme, accessToken }: GalleryViewProps) {
+export function GalleryView({
+  project,
+  media,
+  theme,
+  accessToken,
+  hasPaid,
+  photographerName,
+}: GalleryViewProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const styles = themeMap[theme] ?? darkStyles
 
@@ -38,6 +48,17 @@ export function GalleryView({ project, media, theme, accessToken }: GalleryViewP
   }, [media])
 
   const isProTier = project.pricing_model !== 'free'
+
+  // Show paywall if gallery has paid pricing and client hasn't paid yet
+  if (project.pricing_model !== 'free' && !hasPaid && !accessToken) {
+    return (
+      <GalleryPaywall
+        project={project}
+        sampleMedia={media.slice(0, 3)}
+        photographerName={photographerName ?? project.name}
+      />
+    )
+  }
 
   const handleDownloadAll = () => {
     const url = `/api/gallery/${project.id}/download?type=zip${accessToken ? `&token=${accessToken}` : ''}`

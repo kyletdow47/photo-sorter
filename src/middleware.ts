@@ -51,6 +51,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Redirect authenticated but un-onboarded users to /onboarding
+  // Skip if already on /onboarding or /api routes
+  if (
+    user &&
+    !pathname.startsWith('/onboarding') &&
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/auth')
+  ) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarded')
+      .eq('id', user.id)
+      .single()
+
+    if (profile && profile.onboarded === false) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
+  }
+
   return response
 }
 
