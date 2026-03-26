@@ -11,9 +11,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.100.0",
     "@xenova/transformers": "^2.17.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "jszip": "^3.10.1",
     "lucide-react": "^1.7.0",
     "next": "14.2.29",
