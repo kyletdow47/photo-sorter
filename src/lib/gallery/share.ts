@@ -8,8 +8,8 @@ function generateToken(length = 32): string {
   let result = ''
   const array = new Uint8Array(length)
   crypto.getRandomValues(array)
-  for (const byte of array) {
-    result += chars[byte % chars.length]
+  for (let i = 0; i < array.length; i++) {
+    result += chars[array[i] % chars.length]
   }
   return result
 }
