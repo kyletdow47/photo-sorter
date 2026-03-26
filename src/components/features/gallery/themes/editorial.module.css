@@ -1,0 +1,194 @@
+/* Editorial theme — stone-900 background, serif fonts, magazine-style */
+.gallery {
+  --gallery-bg: #1c1917;
+  --gallery-text: #fafaf9;
+  --gallery-text-muted: #78716c;
+  --gallery-accent: #e7c08a;
+  --gallery-card-bg: #292524;
+  --gallery-border: #3c3330;
+
+  background-color: var(--gallery-bg);
+  color: var(--gallery-text);
+  font-family: 'Georgia', 'Times New Roman', serif;
+  min-height: 100vh;
+}
+
+.header {
+  background-color: var(--gallery-bg);
+  border-bottom: 1px solid var(--gallery-border);
+  padding: 2.5rem 2rem 2rem;
+}
+
+.headerInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 400;
+  color: var(--gallery-text);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  font-style: italic;
+}
+
+.subtitle {
+  font-size: 0.8125rem;
+  color: var(--gallery-text-muted);
+  margin-top: 0.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.downloadAllBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--gallery-accent);
+  color: #1c1917;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.downloadAllBtn:hover {
+  opacity: 0.85;
+}
+
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem 4rem;
+}
+
+.section {
+  margin-bottom: 4rem;
+}
+
+.sectionTitle {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--gallery-accent);
+  margin-bottom: 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Magazine-style: first photo larger (hero) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.grid > .photoCard:first-child {
+  grid-column: span 2;
+  aspect-ratio: 16 / 9;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid > .photoCard:first-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid > .photoCard:first-child {
+    grid-column: span 1;
+  }
+}
+
+.photoCard {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background-color: var(--gallery-card-bg);
+  cursor: pointer;
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+  filter: contrast(1.05);
+}
+
+.photoCard:hover .photo {
+  transform: scale(1.04);
+}
+
+.photoOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(28,25,23,0.7) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0.75rem;
+}
+
+.photoCard:hover .photoOverlay {
+  opacity: 1;
+}
+
+.downloadBtn {
+  background-color: var(--gallery-accent);
+  color: #1c1917;
+  border: none;
+  border-radius: 0;
+  padding: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+
+.downloadBtn:hover {
+  opacity: 0.85;
+}
+
+.footer {
+  border-top: 1px solid var(--gallery-border);
+  padding: 2rem;
+  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footerText {
+  font-size: 0.75rem;
+  color: var(--gallery-text-muted);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lightboxBackdrop {
+  background-color: rgba(12, 10, 9, 0.97);
+}
