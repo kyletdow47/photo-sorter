@@ -23,7 +23,7 @@ interface ProjectState {
   archiveProject: (id: string) => Promise<void>
 }
 
-export const useProjectStore = create<ProjectState>((set) => ({
+export const useProjectStore = create<ProjectState>((set, _get) => ({
   projects: [],
   currentProject: null,
   loading: false,
