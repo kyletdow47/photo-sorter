@@ -7,6 +7,8 @@ import { GalleryView } from '@/components/features/gallery/GalleryView'
 import { AccessGate } from '@/components/features/gallery/AccessGate'
 import type { Project, Media, GalleryTheme, Profile } from '@/types/supabase'
 
+export const dynamic = 'force-dynamic'
+
 function getServiceSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
