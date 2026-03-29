@@ -59,7 +59,7 @@ export function WorkspaceView({ project, initialMedia, tier = 'free' }: Workspac
   const { selectedIds, toggle, selectRange, selectAll, deselectAll } = useBatchSelect()
   const initializeUploads = useUploadStore((s) => s.initialize)
   const uploadItems = useUploadStore((s) => s.items)
-  const hasInterruptedUploads = Object.values(uploadItems).some((i) => i.status === 'uploading' || i.status === 'queued')
+  const hasInterruptedUploads = Object.values(uploadItems).some((i) => i.status === 'uploading' || i.status === 'pending')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [showUpload, setShowUpload] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
