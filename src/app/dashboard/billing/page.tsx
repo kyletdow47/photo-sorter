@@ -26,8 +26,8 @@ function UsageBar({ label, current, max }: { label: string; current: number; max
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="text-foreground">
+        <span className="text-muted">{label}</span>
+        <span className="text-white">
           {max === null ? `${current} / Unlimited` : `${current} / ${max}`}
         </span>
       </div>
@@ -136,8 +136,35 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-muted-foreground">Loading billing info...</div>
+      <div className="max-w-4xl px-6 lg:px-8 py-8 space-y-8">
+        {/* Skeleton: Current Plan */}
+        <div className="bg-surface rounded-xl border border-view1-border p-6 space-y-4 animate-pulse">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="h-5 w-32 bg-white/5 rounded" />
+              <div className="h-3 w-48 bg-white/5 rounded" />
+            </div>
+            <div className="h-8 w-16 bg-white/5 rounded" />
+          </div>
+          <div className="space-y-3 pt-2">
+            <div className="h-2 w-full bg-white/5 rounded-full" />
+            <div className="h-2 w-3/4 bg-white/5 rounded-full" />
+          </div>
+        </div>
+        {/* Skeleton: Plans grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl border border-view1-border bg-surface p-5 space-y-4 animate-pulse">
+              <div className="h-4 w-16 bg-white/5 rounded" />
+              <div className="h-8 w-20 bg-white/5 rounded" />
+              <div className="space-y-2">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="h-3 w-full bg-white/5 rounded" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -147,11 +174,16 @@ export default function BillingPage() {
   const subscriptionStatus = profile?.subscription_status
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Billing &amp; Plans</h1>
-        <p className="text-muted-foreground mt-1">Manage your subscription and payment settings</p>
+    <div>
+      {/* Header */}
+      <div className="sticky top-0 z-10 border-b border-view1-border bg-background/80 backdrop-blur-sm">
+        <div className="px-6 lg:px-8 py-5 pl-18 lg:pl-8">
+          <h1 className="text-xl font-semibold text-white">Billing &amp; Plans</h1>
+          <p className="text-sm text-muted mt-0.5">Manage your subscription and payment settings</p>
+        </div>
       </div>
+
+      <div className="max-w-4xl px-6 lg:px-8 py-8 space-y-8">
 
       {error && (
         <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
@@ -163,12 +195,12 @@ export default function BillingPage() {
       <section className="bg-surface rounded-xl border border-view1-border p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Current Plan</h2>
-            <p className="text-muted-foreground text-sm">{currentPlan.description}</p>
+            <h2 className="text-lg font-semibold text-white">Current Plan</h2>
+            <p className="text-muted text-sm">{currentPlan.description}</p>
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold text-accent">{currentPlan.name}</div>
-            <div className="text-sm text-muted-foreground">{formatPrice(currentPlan.priceMonthly)}</div>
+            <div className="text-sm text-muted">{formatPrice(currentPlan.priceMonthly)}</div>
           </div>
         </div>
 
@@ -207,7 +239,7 @@ export default function BillingPage() {
 
       {/* Plan Selection */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Available Plans</h2>
+        <h2 className="text-lg font-semibold text-white">Available Plans</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(Object.values(PLANS) as typeof PLANS[PlanTier][]).map((plan) => {
             const isCurrent = plan.id === currentTier
@@ -222,20 +254,20 @@ export default function BillingPage() {
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground">{plan.name}</h3>
+                    <h3 className="font-semibold text-white">{plan.name}</h3>
                     {isCurrent && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent">
                         Current
                       </span>
                     )}
                   </div>
-                  <p className="text-2xl font-bold text-foreground mt-1">
+                  <p className="text-2xl font-bold text-white mt-1">
                     {formatPrice(plan.priceMonthly)}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+                  <p className="text-sm text-muted mt-1">{plan.description}</p>
                 </div>
 
-                <ul className="space-y-1 text-sm text-muted-foreground">
+                <ul className="space-y-1 text-sm text-muted">
                   <li>{plan.limits.maxProjects === null ? 'Unlimited projects' : `${plan.limits.maxProjects} projects`}</li>
                   <li>{plan.limits.storageBytes >= 1024 * 1024 * 1024
                     ? `${plan.limits.storageBytes / (1024 * 1024 * 1024)} GB storage`
@@ -271,8 +303,8 @@ export default function BillingPage() {
       {/* Stripe Connect */}
       <section className="bg-surface rounded-xl border border-view1-border p-6 space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Photographer Payouts</h2>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h2 className="text-lg font-semibold text-white">Photographer Payouts</h2>
+          <p className="text-muted text-sm mt-1">
             Connect your bank account to receive payments from clients directly.
           </p>
         </div>
@@ -280,19 +312,19 @@ export default function BillingPage() {
         {profile?.stripe_connect_enabled ? (
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-accent" />
-            <span className="text-sm text-foreground">Payouts enabled</span>
+            <span className="text-sm text-white">Payouts enabled</span>
           </div>
         ) : (
           <div className="space-y-3">
             {profile?.stripe_connect_account_id ? (
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-yellow-400" />
-                <span className="text-sm text-muted-foreground">Onboarding in progress — complete setup to enable payouts</span>
+                <span className="text-sm text-muted">Onboarding in progress — complete setup to enable payouts</span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-muted" />
-                <span className="text-sm text-muted-foreground">Not set up yet</span>
+                <span className="text-sm text-muted">Not set up yet</span>
               </div>
             )}
             <Button
@@ -309,6 +341,7 @@ export default function BillingPage() {
           </div>
         )}
       </section>
+      </div>
     </div>
   )
 }

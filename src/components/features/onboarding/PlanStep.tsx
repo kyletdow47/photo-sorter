@@ -91,7 +91,7 @@ export function PlanStep({ data, onChange }: PlanStepProps) {
               onClick={() => onChange({ plan: plan.value })}
               className={clsx(
                 'relative flex flex-col rounded-xl border p-5 text-left transition-all',
-                'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background',
+                'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0',
                 selected
                   ? 'border-accent bg-accent/10'
                   : 'border-view1-border bg-surface hover:border-white/20',

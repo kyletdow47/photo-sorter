@@ -110,17 +110,17 @@ export function UploadZone({ projectId, className = '' }: UploadZoneProps) {
           'rounded-xl border-2 border-dashed p-12 cursor-pointer',
           'transition-colors duration-150',
           isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-            : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-blue-600',
+            ? 'border-accent bg-accent/5'
+            : 'border-view1-border bg-surface hover:border-accent/50 hover:bg-accent/5',
         ].join(' ')}
       >
         <UploadIcon isDragging={isDragging} />
 
         <div className="text-center">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+          <p className="text-sm font-medium text-white/70">
             {isDragging ? 'Drop photos here' : 'Drag & drop photos, or click to browse'}
           </p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-xs text-muted">
             JPG, PNG, WEBP, TIFF, RAW, CR2, NEF, ARW, DNG — up to 500 MB each
           </p>
         </div>
@@ -139,10 +139,10 @@ export function UploadZone({ projectId, className = '' }: UploadZoneProps) {
       {errors.length > 0 && (
         <ul
           role="alert"
-          className="mt-3 space-y-1 rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950"
+          className="mt-3 space-y-1 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3"
         >
           {errors.map((err) => (
-            <li key={err} className="text-xs text-red-600 dark:text-red-400">
+            <li key={err} className="text-xs text-red-400">
               {err}
             </li>
           ))}
@@ -158,7 +158,7 @@ function UploadIcon({ isDragging }: { isDragging: boolean }) {
       xmlns="http://www.w3.org/2000/svg"
       className={[
         'h-10 w-10 transition-colors',
-        isDragging ? 'text-blue-500' : 'text-gray-400 dark:text-gray-600',
+        isDragging ? 'text-accent' : 'text-white/30',
       ].join(' ')}
       fill="none"
       viewBox="0 0 24 24"

@@ -78,7 +78,7 @@ export function CategorySection({
         {/* Counts */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {selectedCount > 0 && (
-            <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+            <span className="text-xs text-accent bg-accent/10 px-2 py-0.5 rounded-full">
               {selectedCount} selected
             </span>
           )}

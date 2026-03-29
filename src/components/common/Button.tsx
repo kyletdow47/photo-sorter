@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react'
 import type { ButtonHTMLAttributes } from 'react'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {

@@ -48,9 +48,9 @@ export function MediaCard({ media, onSelect, onDoubleClick, className }: MediaCa
       aria-label={media.filename}
       tabIndex={0}
       className={clsx(
-        'group relative cursor-pointer select-none rounded-lg overflow-hidden bg-surface border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background',
+        'group relative cursor-pointer select-none rounded-lg overflow-hidden bg-surface border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0',
         media.selected
-          ? 'border-blue-500 ring-2 ring-blue-500/40'
+          ? 'border-accent ring-2 ring-accent/40'
           : 'border-view1-border hover:border-white/20',
         className
       )}
@@ -85,7 +85,7 @@ export function MediaCard({ media, onSelect, onDoubleClick, className }: MediaCa
           className={clsx(
             'absolute top-2 left-2 w-5 h-5 rounded border-2 transition-all duration-150 flex items-center justify-center',
             media.selected
-              ? 'bg-blue-500 border-blue-500 opacity-100'
+              ? 'bg-accent border-accent opacity-100'
               : 'bg-black/50 border-white/60 opacity-0 group-hover:opacity-100'
           )}
         >

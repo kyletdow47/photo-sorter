@@ -18,6 +18,7 @@ const config: Config = {
       fontFamily: {
         sans: ['DM Sans', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
+        serif: ['Georgia', 'Times New Roman', 'serif'],
       },
     },
   },

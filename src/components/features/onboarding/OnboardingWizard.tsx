@@ -33,6 +33,7 @@ export function OnboardingWizard() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [animating, setAnimating] = useState(false)
+  const [shaking, setShaking] = useState(false)
   const [direction, setDirection] = useState<'forward' | 'back'>('forward')
   const [submitting, setSubmitting] = useState(false)
 
@@ -104,7 +105,11 @@ export function OnboardingWizard() {
   }
 
   function handleNext() {
-    if (!validateStep(step)) return
+    if (!validateStep(step)) {
+      setShaking(true)
+      setTimeout(() => setShaking(false), 500)
+      return
+    }
     if (step < STEP_COUNT) {
       navigate(step + 1)
     } else {
@@ -213,12 +218,13 @@ export function OnboardingWizard() {
       {/* Step content */}
       <div
         className={clsx(
-          'transition-all duration-200',
+          'transition-all duration-[var(--transition-normal,200ms)]',
           animating
             ? direction === 'forward'
               ? 'opacity-0 translate-x-4'
               : 'opacity-0 -translate-x-4'
-            : 'opacity-100 translate-x-0'
+            : 'opacity-100 translate-x-0',
+          shaking && 'animate-[shake_0.4s_ease-in-out]'
         )}
       >
         {step === 1 && (

@@ -40,7 +40,7 @@ export function WelcomeStep({ data, errors, onChange }: WelcomeStepProps) {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="relative group rounded-full focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
+          className="relative group rounded-full focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0"
           aria-label="Upload avatar"
         >
           <Avatar

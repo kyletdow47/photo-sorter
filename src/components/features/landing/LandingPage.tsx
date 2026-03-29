@@ -138,14 +138,19 @@ export function LandingPage() {
   const [inlineError, setInlineError] = useState('')
 
   useEffect(() => {
-    fetch('/api/waitlist')
-      .then((r) => r.json())
-      .then((d: { count?: number }) => {
-        if (typeof d.count === 'number') setWaitlistCount(d.count)
-      })
-      .catch(() => {
-        // Non-critical — count simply won't show
-      })
+    function fetchCount() {
+      fetch('/api/waitlist')
+        .then((r) => r.json())
+        .then((d: { count?: number }) => {
+          if (typeof d.count === 'number') setWaitlistCount(d.count)
+        })
+        .catch(() => {
+          // Non-critical — count simply won't show
+        })
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 30_000)
+    return () => clearInterval(interval)
   }, [])
 
   async function handleInlineSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -187,12 +192,20 @@ export function LandingPage() {
           <span className="text-white font-semibold text-lg tracking-tight">
             View1 <span className="text-accent">Studio</span>
           </span>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-accent text-black font-semibold text-sm rounded-lg px-4 py-2 hover:bg-green-300 transition-colors"
-          >
-            Join Waitlist
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href="/auth/login"
+              className="text-sm font-medium text-white/60 hover:text-white transition-colors"
+            >
+              Log in
+            </a>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-accent text-black font-semibold text-sm rounded-lg px-4 py-2 hover:bg-green-300 transition-colors"
+            >
+              Join Waitlist
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -435,17 +448,17 @@ export function LandingPage() {
             © {new Date().getFullYear()} View1 Studio. All rights reserved.
           </span>
           <nav className="flex items-center gap-6 flex-wrap justify-center">
-            <a href="/privacy" className="text-muted hover:text-white text-sm transition-colors">
+            <a href="/privacy" className="text-muted hover:text-white text-sm transition-colors focus:outline-none focus:underline focus:text-white">
               Privacy
             </a>
-            <a href="/terms" className="text-muted hover:text-white text-sm transition-colors">
+            <a href="/terms" className="text-muted hover:text-white text-sm transition-colors focus:outline-none focus:underline focus:text-white">
               Terms
             </a>
             <a
               href="https://twitter.com/view1studio"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted hover:text-white transition-colors"
+              className="text-muted hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent rounded-sm"
               aria-label="View1 Studio on X / Twitter"
             >
               <Share2 size={18} />
@@ -454,7 +467,7 @@ export function LandingPage() {
               href="https://linkedin.com/company/view1studio"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted hover:text-white transition-colors"
+              className="text-muted hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent rounded-sm"
               aria-label="View1 Studio on LinkedIn"
             >
               <Share2 size={18} />

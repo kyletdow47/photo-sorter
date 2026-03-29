@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
-import { Globe, Grid3X3, HardDrive, List, Search, Upload, X } from 'lucide-react'
+import { Globe, Grid3X3, HardDrive, List, Menu, Search, Upload, X } from 'lucide-react'
 import { Button } from '@/components/common'
 import { CategorySection } from '@/components/features/CategorySection'
 import { Lightbox } from '@/components/features/Lightbox'
@@ -11,7 +11,10 @@ import { SelectionToolbar } from '@/components/features/SelectionToolbar'
 import { UploadZone } from '@/components/features/UploadZone'
 import { useBatchSelect } from '@/hooks/useBatchSelect'
 import { useMediaStore } from '@/stores/mediaStore'
+import { useUploadStore } from '@/stores/uploadStore'
+import { PLANS } from '@/lib/stripe/plans'
 import type { Media, Project } from '@/types/supabase'
+import type { UserTier } from '@/types/supabase'
 import type { MediaItem } from '@/types/media'
 
 function mediaToItem(m: Media): MediaItem {
@@ -32,14 +35,14 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
-const STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024 // 10 GB
-
 export interface WorkspaceViewProps {
   project: Project
   initialMedia: Media[]
+  tier?: UserTier
 }
 
-export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
+export function WorkspaceView({ project, initialMedia, tier = 'free' }: WorkspaceViewProps) {
+  const storageLimitBytes = PLANS[tier].limits.storageBytes
   const router = useRouter()
   const {
     setMedia,
@@ -54,15 +57,20 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
   } = useMediaStore()
 
   const { selectedIds, toggle, selectRange, selectAll, deselectAll } = useBatchSelect()
+  const initializeUploads = useUploadStore((s) => s.initialize)
+  const uploadItems = useUploadStore((s) => s.items)
+  const hasInterruptedUploads = Object.values(uploadItems).some((i) => i.status === 'uploading' || i.status === 'queued')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [showUpload, setShowUpload] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const lastSelectedRef = useRef<string | null>(null)
 
   // Seed store with SSR data on mount
   useEffect(() => {
     setMedia(initialMedia)
-  }, [initialMedia, setMedia])
+    void initializeUploads()
+  }, [initialMedia, setMedia, initializeUploads])
 
   const groups = groupedByCategory()
   const categoryNames = Object.keys(groups)
@@ -98,12 +106,25 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
   }
 
   const totalBytes = allFilteredMedia.reduce((sum, m) => sum + m.size_bytes, 0)
-  const storagePercent = Math.min((totalBytes / STORAGE_LIMIT_BYTES) * 100, 100)
+  const storagePercent = Math.min((totalBytes / storageLimitBytes) * 100, 100)
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 border-r border-view1-border bg-surface flex flex-col">
+      <aside
+        className={clsx(
+          'fixed inset-y-0 left-0 z-40 w-56 border-r border-view1-border bg-surface flex flex-col transform transition-transform duration-200 lg:static lg:translate-x-0 lg:flex-shrink-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
         <div className="p-4 border-b border-view1-border">
           <button
             type="button"
@@ -143,6 +164,7 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
             onClick={() => {
               setActiveCategory(null)
               setFilter({ category: null })
+              setSidebarOpen(false)
             }}
           >
             All Photos
@@ -162,6 +184,7 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
               onClick={() => {
                 setActiveCategory(cat)
                 setFilter({ category: cat })
+                setSidebarOpen(false)
               }}
             >
               <span className="truncate flex-1">{cat}</span>
@@ -175,7 +198,7 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
           <div className="flex items-center gap-1.5 mb-1.5">
             <HardDrive className="w-3.5 h-3.5 text-white/40" />
             <span className="text-xs text-white/40">Storage</span>
-            <span className="ml-auto text-xs text-white/30">{formatBytes(totalBytes)} / 10 GB</span>
+            <span className="ml-auto text-xs text-white/30">{formatBytes(totalBytes)} / {formatBytes(storageLimitBytes)}</span>
           </div>
           <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div
@@ -190,6 +213,14 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="flex items-center gap-4 px-6 py-4 border-b border-view1-border bg-surface/80 backdrop-blur-sm flex-shrink-0">
+          <button
+            type="button"
+            aria-label="Open sidebar"
+            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/5 lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Menu className="w-5 h-5" />
+          </button>
           <h1 className="font-semibold text-white text-base truncate flex-1">{project.name}</h1>
 
           {/* Search */}
@@ -200,7 +231,7 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
               placeholder="Search photos…"
               value={filters.search}
               onChange={(e) => setFilter({ search: e.target.value })}
-              className="bg-white/5 border border-view1-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-accent w-48"
+              className="bg-white/5 border border-view1-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent focus:bg-white/[0.08] w-48 transition-all"
             />
           </div>
 
@@ -246,6 +277,20 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
           </Button>
         </header>
 
+        {/* Interrupted uploads banner */}
+        {!showUpload && hasInterruptedUploads && (
+          <div className="px-6 py-3 border-b border-view1-border bg-yellow-500/10 flex items-center justify-between">
+            <p className="text-sm text-yellow-400">You have interrupted uploads. Resume them?</p>
+            <button
+              type="button"
+              className="text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+              onClick={() => setShowUpload(true)}
+            >
+              Resume
+            </button>
+          </div>
+        )}
+
         {/* Upload zone (collapsible) */}
         {showUpload && (
           <div className="relative px-6 pt-4 border-b border-view1-border">
@@ -280,10 +325,10 @@ export function WorkspaceView({ project, initialMedia }: WorkspaceViewProps) {
               ))}
             </div>
           ) : allFilteredMedia.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <Upload className="w-16 h-16 text-white/20 mx-auto mb-6" />
+            <div className="flex flex-col items-center justify-center py-24 text-center animate-in fade-in duration-300">
+              <Upload className="w-16 h-16 text-muted mx-auto mb-6" />
               <h2 className="text-white/60 font-medium mb-2">No photos yet</h2>
-              <p className="text-white/30 text-sm mb-6 max-w-xs">
+              <p className="text-muted text-sm mb-6 max-w-xs">
                 Upload your first photos to get started with AI sorting.
               </p>
               <Button size="sm" onClick={() => setShowUpload(true)} className="gap-2">

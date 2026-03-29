@@ -118,7 +118,7 @@ export function Lightbox({ media, currentIndex, onClose, onNavigate }: LightboxP
           {current.filename}
         </span>
         {current.ai_category && (
-          <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full flex-shrink-0">
+          <span className="text-xs bg-accent/15 text-accent px-2 py-0.5 rounded-full flex-shrink-0">
             {current.ai_category}
           </span>
         )}

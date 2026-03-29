@@ -91,8 +91,8 @@ export function ProjectCard({ project, photoCount = 0 }: ProjectCardProps) {
       aria-label={`Open project ${project.name}`}
       className={clsx(
         'group relative rounded-xl border border-view1-border bg-surface cursor-pointer',
-        'hover:border-white/20 transition-all duration-150 overflow-hidden',
-        'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background',
+        'hover:border-white/20 hover:shadow-lg hover:scale-[1.02] transition-all duration-150 overflow-hidden',
+        'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0',
         deleting && 'opacity-50 pointer-events-none',
       )}
       onClick={handleCardClick}

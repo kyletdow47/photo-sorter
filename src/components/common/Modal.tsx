@@ -22,7 +22,7 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
             <Dialog.Title className="text-lg font-semibold text-white">{title}</Dialog.Title>
             <Dialog.Close asChild>
               <button
-                className="text-muted hover:text-white transition-colors rounded-md p-1 hover:bg-white/5"
+                className="text-muted hover:text-white transition-colors rounded-md p-1 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0"
                 aria-label="Close modal"
               >
                 <X size={18} />

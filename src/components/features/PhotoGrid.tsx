@@ -59,9 +59,9 @@ function ListRow({
       aria-label={media.filename}
       tabIndex={0}
       className={clsx(
-        'flex items-center gap-4 p-3 rounded-lg border cursor-pointer select-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background',
+        'flex items-center gap-4 p-3 rounded-lg border cursor-pointer select-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0',
         selected
-          ? 'bg-blue-500/10 border-blue-500/50'
+          ? 'bg-accent/10 border-accent/50'
           : 'bg-surface border-view1-border hover:border-white/20 hover:bg-white/[0.02]'
       )}
       onClick={(e) => onSelect(media.id, e.shiftKey)}
@@ -104,7 +104,7 @@ function ListRow({
       {/* Category + confidence */}
       {media.ai_category && (
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-accent/15 text-accent px-2 py-0.5 rounded-full">
             {media.ai_category}
           </span>
           {media.ai_confidence != null && (
@@ -119,7 +119,7 @@ function ListRow({
       <div
         className={clsx(
           'w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center',
-          selected ? 'bg-blue-500 border-blue-500' : 'border-white/30'
+          selected ? 'bg-accent border-accent' : 'border-white/30'
         )}
       >
         {selected && (

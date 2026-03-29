@@ -3,6 +3,7 @@
 import { clsx } from 'clsx'
 import { Image as ImageIcon, Upload, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { toast } from 'sonner'
 
 interface UploadFile {
   file: File
@@ -36,6 +37,10 @@ export function FileUpload({
       const slots = maxFiles - files.length
       const limited = imageFiles.slice(0, slots)
       if (limited.length === 0) return
+
+      if (limited.length < imageFiles.length) {
+        toast(`Only the first ${limited.length} of ${imageFiles.length} files were added (limit: ${maxFiles})`)
+      }
 
       const entries: UploadFile[] = limited.map((file) => ({
         file,

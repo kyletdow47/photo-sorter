@@ -20,14 +20,15 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     redirect('/auth/login')
   }
 
-  const [project, media] = await Promise.all([
+  const [project, media, profile] = await Promise.all([
     getProject(supabase, id),
     getMedia(supabase, id),
+    supabase.from('profiles').select('tier').eq('id', user.id).single(),
   ])
 
   if (!project) {
     notFound()
   }
 
-  return <WorkspaceView project={project} initialMedia={media} />
+  return <WorkspaceView project={project} initialMedia={media} tier={profile.data?.tier ?? 'free'} />
 }
